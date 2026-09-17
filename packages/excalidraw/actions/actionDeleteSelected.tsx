@@ -31,6 +31,7 @@ import { TrashIcon } from "../components/icons";
 import { IconButton } from "../components/IconButton";
 
 import { useStylesPanelMode } from "../components/App";
+import { activeConfirmDialogAtom } from "../components/ActiveConfirmDialog";
 
 import { register } from "./register";
 
@@ -205,13 +206,36 @@ const handleGroupEditingState = (
   return appState;
 };
 
-export const actionDeleteSelected = register({
+const shouldConfirmDelete = (
+  elements: readonly ExcalidrawElement[],
+  appState: Readonly<AppState>,
+) => {
+  if (appState.selectedLinearElement?.isEditing) {
+    return false;
+  }
+
+  const selectedElements = getSelectedElements(elements, appState);
+  return (
+    selectedElements.length > 1 ||
+    selectedElements.some((element) => isFrameLikeElement(element))
+  );
+};
+
+export const actionDeleteSelected = register<{
+  confirmed?: boolean;
+  selectedElementIds?: AppState["selectedElementIds"];
+} | null>({
   name: "deleteSelectedElements",
   label: "labels.delete",
   icon: TrashIcon,
-  trackEvent: { category: "element", action: "delete" },
+  trackEvent: {
+    category: "element",
+    action: "delete",
+    predicate: (appState, elements, formData) =>
+      formData?.confirmed || !shouldConfirmDelete(elements, appState),
+  },
   perform: (elements, appState, formData, app) => {
-    if (appState.selectedLinearElement?.isEditing) {
+    if (!formData?.confirmed && appState.selectedLinearElement?.isEditing) {
       const { elementId, selectedPointsIndices } =
         appState.selectedLinearElement;
       const elementsMap = app.scene.getNonDeletedElementsMap();
@@ -272,8 +296,25 @@ export const actionDeleteSelected = register({
       };
     }
 
+    if (!formData?.confirmed && shouldConfirmDelete(elements, appState)) {
+      app.updateEditorAtom(activeConfirmDialogAtom, {
+        type: "deleteSelection",
+        app,
+        selectedElementIds: { ...appState.selectedElementIds },
+      });
+      return false;
+    }
+
+    const deletionAppState = formData?.selectedElementIds
+      ? {
+          ...appState,
+          selectedElementIds: formData.selectedElementIds,
+          selectedLinearElement: null,
+        }
+      : appState;
+
     let { elements: nextElements, appState: nextAppState } =
-      deleteSelectedElements(elements, appState, app);
+      deleteSelectedElements(elements, deletionAppState, app);
 
     fixBindingsAfterDeletion(
       nextElements,
@@ -296,7 +337,7 @@ export const actionDeleteSelected = register({
       },
       captureUpdate: isSomeElementSelected(
         getNonDeletedElements(elements),
-        appState,
+        deletionAppState,
       )
         ? CaptureUpdateAction.IMMEDIATELY
         : CaptureUpdateAction.EVENTUALLY,

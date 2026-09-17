@@ -889,6 +889,7 @@ exports[`contextMenu element > right-clicking on a group should select whole gro
         "trackEvent": {
           "action": "delete",
           "category": "element",
+          "predicate": [Function],
         },
       },
     ],
@@ -5612,6 +5613,7 @@ exports[`contextMenu element > shows 'Group selection' in context menu for multi
         "trackEvent": {
           "action": "delete",
           "category": "element",
+          "predicate": [Function],
         },
       },
     ],
@@ -6835,6 +6837,7 @@ exports[`contextMenu element > shows 'Ungroup selection' in context menu for gro
         "trackEvent": {
           "action": "delete",
           "category": "element",
+          "predicate": [Function],
         },
       },
     ],
@@ -8804,6 +8807,7 @@ exports[`contextMenu element > shows context menu for element > [end of test] ap
         "trackEvent": {
           "action": "delete",
           "category": "element",
+          "predicate": [Function],
         },
       },
     ],
@@ -9801,6 +9805,7 @@ exports[`contextMenu element > shows context menu for element > [end of test] ap
         "trackEvent": {
           "action": "delete",
           "category": "element",
+          "predicate": [Function],
         },
       },
     ],
