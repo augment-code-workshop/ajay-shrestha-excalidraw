@@ -240,6 +240,18 @@ describe("delete selection confirmation", () => {
     API.setElements(rectangles);
     API.setSelectedElements(rectangles);
 
+    if (!actionDeleteSelected.trackEvent) {
+      throw new Error("delete action tracking must be configured");
+    }
+    const { predicate: shouldTrackDelete } = actionDeleteSelected.trackEvent;
+    expect(shouldTrackDelete?.(h.state, h.elements, null)).toBe(false);
+    const shouldTrackConfirmedDelete = shouldTrackDelete?.(
+      h.state,
+      h.elements,
+      { confirmed: true },
+    );
+    expect(shouldTrackConfirmedDelete).toBe(true);
+
     act(() => {
       h.app.actionManager.executeAction(actionDeleteSelected);
     });

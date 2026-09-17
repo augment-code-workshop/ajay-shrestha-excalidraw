@@ -206,11 +206,31 @@ const handleGroupEditingState = (
   return appState;
 };
 
+const shouldConfirmDelete = (
+  elements: readonly ExcalidrawElement[],
+  appState: Readonly<AppState>,
+) => {
+  if (appState.selectedLinearElement?.isEditing) {
+    return false;
+  }
+
+  const selectedElements = getSelectedElements(elements, appState);
+  return (
+    selectedElements.length > 1 ||
+    selectedElements.some((element) => isFrameLikeElement(element))
+  );
+};
+
 export const actionDeleteSelected = register<{ confirmed?: boolean } | null>({
   name: "deleteSelectedElements",
   label: "labels.delete",
   icon: TrashIcon,
-  trackEvent: { category: "element", action: "delete" },
+  trackEvent: {
+    category: "element",
+    action: "delete",
+    predicate: (appState, elements, formData) =>
+      formData?.confirmed || !shouldConfirmDelete(elements, appState),
+  },
   perform: (elements, appState, formData, app) => {
     if (appState.selectedLinearElement?.isEditing) {
       const { elementId, selectedPointsIndices } =
@@ -273,12 +293,7 @@ export const actionDeleteSelected = register<{ confirmed?: boolean } | null>({
       };
     }
 
-    const selectedElements = getSelectedElements(elements, appState);
-    if (
-      !formData?.confirmed &&
-      (selectedElements.length > 1 ||
-        selectedElements.some((element) => isFrameLikeElement(element)))
-    ) {
+    if (!formData?.confirmed && shouldConfirmDelete(elements, appState)) {
       app.updateEditorAtom(activeConfirmDialogAtom, "deleteSelection");
       return false;
     }
