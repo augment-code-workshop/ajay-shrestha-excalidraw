@@ -125,6 +125,34 @@ describe("findShapeByKey()", () => {
   });
 });
 
+describe("main toolbar", () => {
+  it("renders the tools in their visual order", async () => {
+    const { container } = await render(<Excalidraw />);
+    const toolNames = new Set([
+      "hand",
+      "selection",
+      "eraser",
+      "rectangle",
+      "diamond",
+      "ellipse",
+      "arrow",
+      "line",
+      "freedraw",
+      "text",
+      "image",
+    ]);
+    const renderedToolNames = Array.from(
+      container.querySelectorAll<HTMLElement>(
+        '.App-toolbar [data-testid^="toolbar-"]',
+      ),
+    )
+      .map((element) => element.dataset.testid?.replace("toolbar-", ""))
+      .filter((name): name is string => !!name && toolNames.has(name));
+
+    expect(renderedToolNames).toEqual(Array.from(toolNames));
+  });
+});
+
 describe("props.activeTool (forced tool)", () => {
   const h = window.h;
   const mouse = new Pointer("mouse");
