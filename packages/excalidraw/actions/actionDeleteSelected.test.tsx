@@ -1,5 +1,7 @@
 import React from "react";
 
+import { activeConfirmDialogAtom } from "../components/ActiveConfirmDialog";
+import { editorJotaiStore } from "../editor-jotai";
 import { Excalidraw } from "../index";
 import { API } from "../tests/helpers/api";
 import {
@@ -259,6 +261,11 @@ describe("delete selection confirmation", () => {
     const confirmDialog = document.querySelector(".confirm-dialog")!;
     expect(confirmDialog).not.toBeNull();
     expect(h.elements.every((element) => !element.isDeleted)).toBe(true);
+    expect(editorJotaiStore.get(activeConfirmDialogAtom)).toEqual({
+      type: "deleteSelection",
+      app: h.app,
+      selectedElementIds: h.state.selectedElementIds,
+    });
 
     fireEvent.click(confirmDialog.querySelector('[aria-label="Cancel"]')!);
 
@@ -270,6 +277,30 @@ describe("delete selection confirmation", () => {
       [rectangles[0].id]: true,
       [rectangles[1].id]: true,
     });
+  });
+
+  it("deletes only the selection that was confirmed", async () => {
+    const rectangles = [
+      API.createElement({ type: "rectangle" }),
+      API.createElement({ type: "rectangle" }),
+      API.createElement({ type: "rectangle" }),
+    ];
+    API.setElements(rectangles);
+    API.setSelectedElements(rectangles.slice(0, 2));
+
+    act(() => {
+      h.app.actionManager.executeAction(actionDeleteSelected);
+    });
+
+    const confirmDialog = document.querySelector(".confirm-dialog")!;
+    API.setSelectedElements(rectangles);
+    fireEvent.click(confirmDialog.querySelector('[aria-label="Confirm"]')!);
+
+    await waitFor(() => {
+      expect(h.elements[0].isDeleted).toBe(true);
+      expect(h.elements[1].isDeleted).toBe(true);
+    });
+    expect(h.elements[2].isDeleted).toBe(false);
   });
 
   it("requires confirmation before deleting a frame", async () => {

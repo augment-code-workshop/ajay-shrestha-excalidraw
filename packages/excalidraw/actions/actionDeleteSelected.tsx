@@ -221,7 +221,10 @@ const shouldConfirmDelete = (
   );
 };
 
-export const actionDeleteSelected = register<{ confirmed?: boolean } | null>({
+export const actionDeleteSelected = register<{
+  confirmed?: boolean;
+  selectedElementIds?: AppState["selectedElementIds"];
+} | null>({
   name: "deleteSelectedElements",
   label: "labels.delete",
   icon: TrashIcon,
@@ -232,7 +235,7 @@ export const actionDeleteSelected = register<{ confirmed?: boolean } | null>({
       formData?.confirmed || !shouldConfirmDelete(elements, appState),
   },
   perform: (elements, appState, formData, app) => {
-    if (appState.selectedLinearElement?.isEditing) {
+    if (!formData?.confirmed && appState.selectedLinearElement?.isEditing) {
       const { elementId, selectedPointsIndices } =
         appState.selectedLinearElement;
       const elementsMap = app.scene.getNonDeletedElementsMap();
@@ -294,12 +297,24 @@ export const actionDeleteSelected = register<{ confirmed?: boolean } | null>({
     }
 
     if (!formData?.confirmed && shouldConfirmDelete(elements, appState)) {
-      app.updateEditorAtom(activeConfirmDialogAtom, "deleteSelection");
+      app.updateEditorAtom(activeConfirmDialogAtom, {
+        type: "deleteSelection",
+        app,
+        selectedElementIds: { ...appState.selectedElementIds },
+      });
       return false;
     }
 
+    const deletionAppState = formData?.selectedElementIds
+      ? {
+          ...appState,
+          selectedElementIds: formData.selectedElementIds,
+          selectedLinearElement: null,
+        }
+      : appState;
+
     let { elements: nextElements, appState: nextAppState } =
-      deleteSelectedElements(elements, appState, app);
+      deleteSelectedElements(elements, deletionAppState, app);
 
     fixBindingsAfterDeletion(
       nextElements,
@@ -322,7 +337,7 @@ export const actionDeleteSelected = register<{ confirmed?: boolean } | null>({
       },
       captureUpdate: isSomeElementSelected(
         getNonDeletedElements(elements),
-        appState,
+        deletionAppState,
       )
         ? CaptureUpdateAction.IMMEDIATELY
         : CaptureUpdateAction.EVENTUALLY,

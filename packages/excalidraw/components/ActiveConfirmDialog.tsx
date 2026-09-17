@@ -5,8 +5,16 @@ import { t } from "../i18n";
 import { useExcalidrawActionManager } from "./App";
 import ConfirmDialog from "./ConfirmDialog";
 
+import type { AppClassProperties, AppState } from "../types";
+
 export const activeConfirmDialogAtom = atom<
-  "clearCanvas" | "deleteSelection" | null
+  | "clearCanvas"
+  | {
+      type: "deleteSelection";
+      app: AppClassProperties;
+      selectedElementIds: AppState["selectedElementIds"];
+    }
+  | null
 >(null);
 
 export const ActiveConfirmDialog = () => {
@@ -34,12 +42,13 @@ export const ActiveConfirmDialog = () => {
     );
   }
 
-  if (activeConfirmDialog === "deleteSelection") {
+  if (activeConfirmDialog.app === actionManager.app) {
     return (
       <ConfirmDialog
         onConfirm={() => {
           actionManager.executeAction(actionDeleteSelected, "ui", {
             confirmed: true,
+            selectedElementIds: activeConfirmDialog.selectedElementIds,
           });
           setActiveConfirmDialog(null);
         }}
