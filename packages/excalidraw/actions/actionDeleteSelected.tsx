@@ -31,6 +31,7 @@ import { TrashIcon } from "../components/icons";
 import { IconButton } from "../components/IconButton";
 
 import { useStylesPanelMode } from "../components/App";
+import { activeConfirmDialogAtom } from "../components/ActiveConfirmDialog";
 
 import { register } from "./register";
 
@@ -205,7 +206,7 @@ const handleGroupEditingState = (
   return appState;
 };
 
-export const actionDeleteSelected = register({
+export const actionDeleteSelected = register<{ confirmed?: boolean } | null>({
   name: "deleteSelectedElements",
   label: "labels.delete",
   icon: TrashIcon,
@@ -270,6 +271,16 @@ export const actionDeleteSelected = register({
         },
         captureUpdate: CaptureUpdateAction.IMMEDIATELY,
       };
+    }
+
+    const selectedElements = getSelectedElements(elements, appState);
+    if (
+      !formData?.confirmed &&
+      (selectedElements.length > 1 ||
+        selectedElements.some((element) => isFrameLikeElement(element)))
+    ) {
+      app.updateEditorAtom(activeConfirmDialogAtom, "deleteSelection");
+      return false;
     }
 
     let { elements: nextElements, appState: nextAppState } =

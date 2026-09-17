@@ -84,6 +84,11 @@ const { h } = window;
 
 const mouse = new Pointer("mouse");
 
+const confirmDeleteSelection = () => {
+  const confirmDialog = document.querySelector(".confirm-dialog")!;
+  fireEvent.click(confirmDialog.querySelector('[aria-label="Confirm"]')!);
+};
+
 const checkpoint = (name: string) => {
   expect(renderStaticScene.mock.calls.length).toMatchSnapshot(
     `[${name}] number of renders`,
@@ -895,6 +900,7 @@ describe("history", () => {
 
       mouse.select([rect2, rect3]);
       Keyboard.keyDown(KEYS.DELETE);
+      confirmDeleteSelection();
 
       expect(API.getUndoStack().length).toBe(6);
 
@@ -1908,6 +1914,7 @@ describe("history", () => {
       it("should unbind rectangles from arrow on deletion and rebind on undo", async () => {
         mouse.select([rect1, rect2]);
         Keyboard.keyPress(KEYS.DELETE);
+        confirmDeleteSelection();
         expect(API.getUndoStack().length).toBe(8);
         expect(API.getRedoStack().length).toBe(0);
         expect(h.elements).toEqual([

@@ -2,11 +2,25 @@ import React from "react";
 
 import { Excalidraw } from "../index";
 import { API } from "../tests/helpers/api";
-import { act, assertElements, render } from "../tests/test-utils";
+import {
+  act,
+  assertElements,
+  fireEvent,
+  render,
+  waitFor,
+} from "../tests/test-utils";
 
 import { actionDeleteSelected } from "./actionDeleteSelected";
 
 const { h } = window;
+
+const deleteSelection = () => {
+  act(() => {
+    h.app.actionManager.executeAction(actionDeleteSelected, "api", {
+      confirmed: true,
+    });
+  });
+};
 
 describe("deleting selected elements when frame selected should keep children + select them", () => {
   beforeEach(async () => {
@@ -27,9 +41,7 @@ describe("deleting selected elements when frame selected should keep children + 
 
     API.setSelectedElements([f1]);
 
-    act(() => {
-      h.app.actionManager.executeAction(actionDeleteSelected);
-    });
+    deleteSelection();
 
     assertElements(h.elements, [
       { id: f1.id, isDeleted: true },
@@ -64,9 +76,7 @@ describe("deleting selected elements when frame selected should keep children + 
 
     API.setSelectedElements([f1]);
 
-    act(() => {
-      h.app.actionManager.executeAction(actionDeleteSelected);
-    });
+    deleteSelection();
 
     assertElements(h.elements, [
       { id: f1.id, isDeleted: true },
@@ -102,9 +112,7 @@ describe("deleting selected elements when frame selected should keep children + 
 
     API.setSelectedElements([f1]);
 
-    act(() => {
-      h.app.actionManager.executeAction(actionDeleteSelected);
-    });
+    deleteSelection();
 
     assertElements(h.elements, [
       { id: f1.id, isDeleted: true },
@@ -140,9 +148,7 @@ describe("deleting selected elements when frame selected should keep children + 
 
     API.setSelectedElements([f1, t1]);
 
-    act(() => {
-      h.app.actionManager.executeAction(actionDeleteSelected);
-    });
+    deleteSelection();
 
     assertElements(h.elements, [
       { id: f1.id, isDeleted: true },
@@ -178,9 +184,7 @@ describe("deleting selected elements when frame selected should keep children + 
 
     API.setSelectedElements([f1, t1]);
 
-    act(() => {
-      h.app.actionManager.executeAction(actionDeleteSelected);
-    });
+    deleteSelection();
 
     assertElements(h.elements, [
       { id: f1.id, isDeleted: true },
@@ -201,13 +205,78 @@ describe("deleting selected elements when frame selected should keep children + 
 
     API.setSelectedElements([f1, r1]);
 
-    act(() => {
-      h.app.actionManager.executeAction(actionDeleteSelected);
-    });
+    deleteSelection();
 
     assertElements(h.elements, [
       { id: f1.id, isDeleted: true },
       { id: r1.id, isDeleted: false, selected: true },
     ]);
+  });
+});
+
+describe("delete selection confirmation", () => {
+  beforeEach(async () => {
+    await render(<Excalidraw />);
+  });
+
+  it("deletes one selected element without confirmation", () => {
+    const rectangle = API.createElement({ type: "rectangle" });
+    API.setElements([rectangle]);
+    API.setSelectedElements([rectangle]);
+
+    act(() => {
+      h.app.actionManager.executeAction(actionDeleteSelected);
+    });
+
+    expect(h.elements[0].isDeleted).toBe(true);
+    expect(document.querySelector(".confirm-dialog")).toBeNull();
+  });
+
+  it("keeps a multi-element selection when confirmation is cancelled", async () => {
+    const rectangles = [
+      API.createElement({ type: "rectangle" }),
+      API.createElement({ type: "rectangle" }),
+    ];
+    API.setElements(rectangles);
+    API.setSelectedElements(rectangles);
+
+    act(() => {
+      h.app.actionManager.executeAction(actionDeleteSelected);
+    });
+
+    const confirmDialog = document.querySelector(".confirm-dialog")!;
+    expect(confirmDialog).not.toBeNull();
+    expect(h.elements.every((element) => !element.isDeleted)).toBe(true);
+
+    fireEvent.click(confirmDialog.querySelector('[aria-label="Cancel"]')!);
+
+    await waitFor(() => {
+      expect(document.querySelector(".confirm-dialog")).toBeNull();
+    });
+    expect(h.elements.every((element) => !element.isDeleted)).toBe(true);
+    expect(h.state.selectedElementIds).toEqual({
+      [rectangles[0].id]: true,
+      [rectangles[1].id]: true,
+    });
+  });
+
+  it("requires confirmation before deleting a frame", async () => {
+    const frame = API.createElement({ type: "frame" });
+    API.setElements([frame]);
+    API.setSelectedElements([frame]);
+
+    act(() => {
+      h.app.actionManager.executeAction(actionDeleteSelected);
+    });
+
+    const confirmDialog = document.querySelector(".confirm-dialog")!;
+    expect(confirmDialog).not.toBeNull();
+    expect(h.elements[0].isDeleted).toBe(false);
+
+    fireEvent.click(confirmDialog.querySelector('[aria-label="Confirm"]')!);
+
+    await waitFor(() => {
+      expect(h.elements[0].isDeleted).toBe(true);
+    });
   });
 });
